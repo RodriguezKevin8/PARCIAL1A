@@ -31,23 +31,21 @@ public partial class Parcial1aContext : DbContext
     {
         modelBuilder.Entity<AutorLibro>(entity =>
         {
-            entity.HasKey(e => new { e.Autorid, e.Libroid });
+            entity.HasKey(e => e.Id).HasName("PK__AutorLib__3213E83F07C53D83");
 
             entity.ToTable("AutorLibro");
 
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Autorid).HasColumnName("autorid");
             entity.Property(e => e.Libroid).HasColumnName("libroid");
-            entity.Property(e => e.Orden).HasColumnName("orden");
 
             entity.HasOne(d => d.Autor).WithMany(p => p.AutorLibros)
                 .HasForeignKey(d => d.Autorid)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AutorLibro_autores");
+                .HasConstraintName("FK__AutorLibr__autor__4222D4EF");
 
             entity.HasOne(d => d.Libro).WithMany(p => p.AutorLibros)
                 .HasForeignKey(d => d.Libroid)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AutorLibro_libros");
+                .HasConstraintName("FK__AutorLibr__libro__4316F928");
         });
 
         modelBuilder.Entity<Autore>(entity =>

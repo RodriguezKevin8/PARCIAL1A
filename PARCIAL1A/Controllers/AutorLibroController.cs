@@ -36,26 +36,23 @@ namespace PARCIAL1A.Controllers
         [Route("GetbyName")]
         public async Task<IActionResult> GetbyName(string nombreAutor)
         {
-            var autorLibro1= await (from a in _parcial1aContext.Autores
-                                     join autorLibro in _parcial1aContext.AutorLibros
-                                     on a.Autorid equals autorLibro.Autorid
-                                     where a.Nombre == nombreAutor
-                                   from l in _parcial1aContext.Libros
-                                   join AutorLibro in _parcial1aContext.AutorLibros
-                                   on l.Libroid equals AutorLibro.Libroid
-                                    where l.Libroid == a.Autorid
+            var autorLibros = await _parcial1aContext.Autores
+                .Where(a => a.Nombre == nombreAutor)
+                .SelectMany(a => a.AutorLibros)
+                .Include(al => al.Libro)
+                .Select(al => new
+                {
+                    AutorId = al.Autorid,
+                    AutorNombre = al.Autor.Nombre,
+                    LibroId = al.Libroid,
+                    TituloLibro = al.Libro.Titulo,
+                    Orden = al.Orden
+                })
+                .ToListAsync();
 
-                                    select new
-                                     {
-                                         AutorId = a.Autorid,
-                                         AutorNombre = a.Nombre,
-                                         LibroId = l.Libroid,
-                                         TituloLibro = l.Titulo,
-                                         Orden = autorLibro.Orden
-                                     }).ToListAsync();
-            if (autorLibro1.Count > 0)
+            if (autorLibros.Count > 0)
             {
-                return Ok(autorLibro1);
+                return Ok(autorLibros);
             }
             else
             {
@@ -65,49 +62,60 @@ namespace PARCIAL1A.Controllers
 
         [HttpPost]
         [Route("Create")]
-        public async Task<ActionResult<AutorLibro>> PostAutorLibro(AutorLibro autorLibro)
+        public async Task<IActionResult> CreateAsync([FromBody] AutorLibro libro)
         {
-            _parcial1aContext.AutorLibros.Add(autorLibro);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            await _parcial1aContext.AutorLibros.AddAsync(libro);
             await _parcial1aContext.SaveChangesAsync();
 
-            return Ok(autorLibro);
+            return Ok(libro);
         }
 
         [HttpPut]
-        [Route("actualizar/{autorId}/{libroId}")]
-        public async Task<IActionResult> ActualizarAutorLibroAsync(int autorId, int libroId, [FromBody] AutorLibro nuevoAutorLibro)
-        {
-            var autorLibro = await _parcial1aContext.AutorLibros
-                .FirstOrDefaultAsync(al => al.Autorid == autorId && al.Libroid == libroId);
-
-            if (autorLibro != null)
-            {
-                autorLibro.Orden= nuevoAutorLibro.Orden;
-                await _parcial1aContext.SaveChangesAsync();
-                return Ok();
-            }
-
-            return NotFound();
-        }
-
-
-        [HttpDelete]
-        [Route("eliminar/{autorId}/{libroId}")]
-        public async Task<IActionResult> Eliminarr(int autorId, int libroId)
+        [Route("actualizar/{id}")]
+        public async Task<IActionResult> ActualizarLibro(int id, [FromBody] AutorLibro libromodificado)
         {
             try
             {
-                AutorLibro? libroactual = await _parcial1aContext.AutorLibros
-               .FirstOrDefaultAsync(al => al.Autorid == autorId && al.Libroid == libroId);
+                AutorLibro? libroactual = await _parcial1aContext.AutorLibros.FindAsync(id);
 
                 if (libroactual == null)
                 {
                     return NotFound();
                 }
-                _parcial1aContext.AutorLibros.Remove(libroactual);
+                libroactual.Autorid = libromodificado.Autorid;
+                libroactual.Libroid = libromodificado.Libroid;
+                libroactual.Orden = libromodificado.Orden;
+
+                await _parcial1aContext.SaveChangesAsync();
+                return Ok(libroactual);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpDelete]
+        [Route("eliminar/{id}")]
+        public async Task<IActionResult> EliminarcAsync(int id)
+        {
+            try
+            {
+                AutorLibro? libro = await _parcial1aContext.AutorLibros.FindAsync(id);
+
+                if (libro == null)
+                {
+                    return NotFound();
+                }
+                _parcial1aContext.AutorLibros.Remove(libro);
                 await _parcial1aContext.SaveChangesAsync();
 
-                return Ok(libroactual);
+                return Ok(libro);
             }
             catch (Exception ex)
             {
