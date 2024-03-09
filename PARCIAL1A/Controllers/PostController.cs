@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿    using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PARCIAL1A.Models;
@@ -27,20 +27,62 @@ namespace PARCIAL1A.Controllers
         }
 
         [HttpGet]
-        [Route("get{id}")]
-        public async Task<IActionResult> Get(int id)
+        [Route("LisNombre/{nombre}")]
+        public IActionResult Findlibro(string nombre)
         {
-            var post = await _parcial1aContexto.Posts.FindAsync(id);
+            var listaPost = (from e in _parcial1aContexto.Libros
+                             join ae in _parcial1aContexto.AutorLibros
+                                on e.Libroid equals ae.Libroid
+                             join a in _parcial1aContexto.Autores
+                                on ae.Autorid equals a.Autorid
+                             join tot in _parcial1aContexto.Posts
+                                on a.Autorid equals tot.Autorid
+                             where a.Nombre.Contains(nombre)
+                             select new
+                             {
+                                 tot.Autorid,
+                                 tot.Titulo,
+                                 tot.Contenido,
+                                 tot.Fechapublicacion,
+                                 a.Nombre,
+                             }).OrderBy(result => result.Fechapublicacion).ToList();
 
-            if (post == null)
+
+            if (listaPost.Count() == 0)
             {
                 return NotFound();
             }
-
-            return Ok(post);
+            return Ok(listaPost);
         }
 
+        [HttpGet]
+        [Route("LisLibro/{libro}")]
+        public IActionResult buscarLibro(string libro)
+        {
+            var listaPost = (from e in _parcial1aContexto.Libros
+                             join ae in _parcial1aContexto.AutorLibros
+                                on e.Libroid equals ae.Libroid
+                             join a in _parcial1aContexto.Autores
+                                on ae.Autorid equals a.Autorid
+                             join tot in _parcial1aContexto.Posts
+                                on a.Autorid equals tot.Autorid
+                             where tot.Titulo.Contains(libro)
+                             select new
+                             {
+                                 ae.Id,
+                                 tot.Titulo,
+                                 tot.Contenido,
+                                 tot.Fechapublicacion,
+                                 a.Nombre,
+                             }).OrderBy(result => result.Fechapublicacion).ToList();
 
+
+            if (listaPost.Count() == 0)
+            {
+                return NotFound();
+            }
+            return Ok(listaPost);
+        }
         [HttpPost]
         [Route("add")]
         public async Task<IActionResult> Post(Post post)
@@ -54,24 +96,23 @@ namespace PARCIAL1A.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);  
+                return BadRequest(ex.Message);
             }
-            
-        }
-        
 
+        }
         [HttpPut]
         [Route("acrtuaizar")]
 
         public async Task<IActionResult> Put(int id, Post postactualizar)
         {
-            var post=_parcial1aContexto.Posts.Find(id);
-            if (post == null) {
+            var post = _parcial1aContexto.Posts.Find(id);
+            if (post == null)
+            {
                 return NotFound();
             }
 
             post.Titulo = postactualizar.Titulo;
-            post.Contenido= postactualizar.Contenido;
+            post.Contenido = postactualizar.Contenido;
             post.Fechapublicacion = postactualizar.Fechapublicacion;
             post.Autorid = postactualizar.Autorid;
 
@@ -101,6 +142,15 @@ namespace PARCIAL1A.Controllers
             return NoContent();
         }
 
-
     }
 }
+
+
+
+        
+
+       
+        
+
+
+    
